@@ -8,7 +8,14 @@ const { Server } = require("socket.io");
 const server = http.createServer(app);
 
 // Create a Socket.IO server
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
+const users = [];
 
 // Define the port
 const port = 4000;
@@ -18,12 +25,39 @@ app.get("/", (req, res) => {
   res.send("Welcome");
 });
 
+const addUser = (userName, roomId) => {
+  users.push({
+    userName: userName,
+    roomId: roomId,
+  });
+};
+
+const getRoomUsers = (roomId) => {
+  return users.filter((user) => user.roomId === roomId);
+};
+
+const userLeave = (userName) => {
+  users = users.filter((user) => user.userName !== userName);
+};
+
 io.on("connection", (socket) => {
   console.log("someone connected");
   socket.on("join-room", ({ roomId, userName }) => {
     console.log("user joined room");
     console.log(roomId);
     console.log(userName);
+    socket.join(roomId);
+    addUser(userName, roomId);
+    socket.to(roomId).emit("user-connected", userName);
+
+    io.to(roomId).emit("all-users", getRoomUsers(roomId));
+
+    socket.on("disconnect", () => {
+      console.log("user disconnected");
+      socket.leave(roomId);
+      userLeave(userName);
+      io.to(roomId).emit("all-users", getRoomUsers(roomId));
+    });
   });
 });
 
