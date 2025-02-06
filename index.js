@@ -18,6 +18,15 @@ app.get("/", (req, res) => {
   res.send("Welcome");
 });
 
+io.on("connection", (socket) => {
+  console.log("someone connected");
+  socket.on("join-room", ({ roomId, userName }) => {
+    console.log("user joined room");
+    console.log(roomId);
+    console.log(userName);
+  });
+});
+
 // Start the server
 server.listen(port, () => {
   console.log(`Zoom clone API on localhost:${port}`);
